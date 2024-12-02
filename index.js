@@ -9,6 +9,10 @@ const port = process.env.PORT || 3000;
 app.use(express.json());
 app.use(cors());
 
+app.get("/", (req, res) => {
+  res.send("Hello from server side");
+});
+
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@nabenducluster.rpwkxww.mongodb.net/?retryWrites=true&w=majority&appName=NabenduCluster`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -25,6 +29,7 @@ async function run() {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
     const coffeeCollection = client.db("coffeeDB").collection("coffees");
+    const usersCollection = client.db("coffeeDB").collection("users");
 
     app.get("/", async (req, res) => {
       const cursor = coffeeCollection.find();
@@ -73,6 +78,48 @@ async function run() {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await coffeeCollection.deleteOne(query);
+      res.send(result);
+    });
+
+    // Users relationship API calls
+
+    app.get("/users", async (req, res) => {
+      const cursor = usersCollection.find();
+      const users = await cursor.toArray();
+      res.send(users);
+    });
+
+    app.post("/users", async (req, res) => {
+      const user = req.body;
+      console.log(user);
+      const result = await usersCollection.insertOne(user);
+      res.send(result);
+    });
+
+    app.get("/users/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await usersCollection.findOne(query);
+      res.send(result);
+    });
+
+    app.patch("/users", async (req, res) => {
+      const email = req.body.email;
+      const filter = { email: email };
+      const updatedUser = {
+        $set: {
+          lastSignInTime: req.body?.lastSignInTime,
+        },
+      };
+      const result = await usersCollection.updateOne(filter, updatedUser);
+      res.send(result);
+    });
+
+    app.delete("/users/:id", async (req, res) => {
+      const id = req.params.id;
+      console.log(id);
+      const query = { _id: new ObjectId(id) };
+      const result = await usersCollection.deleteOne(query);
       res.send(result);
     });
 
